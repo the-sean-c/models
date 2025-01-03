@@ -1,0 +1,28 @@
+[project]
+name = "mlp"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Sean Daly", email = "the_sean_c@fastmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "altair[all]>=5.5.0",
+    "jax-metal>=0.1.1",
+    "polars>=1.18.0",
+]
+
+[project.scripts]
+001-mlp = "001_mlp:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "notebook>=7.3.2",
+    "pytest>=8.3.4",
+    "ruff>=0.8.4",
+]
