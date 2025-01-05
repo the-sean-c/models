@@ -32,43 +32,23 @@ class SplitDataset:
     y_valid: jax.Array
 
     def __post_init__(self):
-        if (
-            len(self.X_train) != len(self.y_train)
-            or len(self.X_test) != len(self.y_test)
-            or len(self.X_valid) != len(self.y_valid)
-        ):
+        is_same_length = (
+            len(self.X_train) == len(self.y_train)
+            and len(self.X_test) == len(self.y_test)
+            and len(self.X_valid) == len(self.y_valid)
+        )
+        is_same_features = (
+            self.X_train.shape[1] == self.X_test.shape[1] == self.X_valid.shape[1]
+            and self.y_train.shape[1] == self.y_test.shape[1] == self.y_valid.shape[1]
+        )
+
+        if not is_same_length:
             raise ValueError("X and y must have the same length")
 
-        if (
-            self.X_train.shape[1] != self.X_test.shape[1] != self.X_valid.shape[1]
-            or self.y_train.shape[1] != self.y_test.shape[1] != self.y_valid.shape[1]
-        ):
+        if not is_same_features:
             raise ValueError(
                 "X's and y's must respectively have same number of features."
             )
-
-
-class JAXDataLoader:
-    def __init__(self, data, batch_size, prefetch_size=2):
-        self.data = data
-        self.batch_size = batch_size
-        self.prefetch_size = prefetch_size
-        self.queue = queue.Queue(prefetch_size)
-        self.executor = ThreadPoolExecutor(max_workers=1)
-
-    def _prefetch(self):
-        for i in range(0, len(self.data), self.batch_size):
-            batch = jnp.array(self.data[i : i + self.batch_size])
-            self.queue.put(batch)
-
-    def __iter__(self):
-        future = self.executor.submit(self._prefetch)
-        while True:
-            try:
-                yield self.queue.get(timeout=0.1)
-            except queue.Empty:
-                if future.done():
-                    break
 
 
 def create_regression_dataset(
@@ -145,8 +125,8 @@ def split_dataset(
 
 
 def generate_data_batches(
-    key: jax.Array, dataset: Dataset, batch_size: int
-) -> Generator[jax.Array, None, None]:
+    key: jax.Array, dataset: Dataset, batch_size: int, n_batches: int = 1
+) -> Generator[Dataset, None, None]:
     """Generate batches of data.
 
     Args:
@@ -158,10 +138,13 @@ def generate_data_batches(
     Yields:
         Batched datasets
     """
+    shuffled_idxs = jax.random.permutation(key, len(dataset))
 
-    key, subkey = jax.random.split(key)
-    shuffled_idxs = jax.random.permutation(subkey, len(dataset))
+    for i in range(0, (len(dataset) // (batch_size * n_batches)) + 1):
+        batches = []
+        for j in range(n_batches):
+            start_idx = i * batch_size * n_batches + j * batch_size
+            idxs = shuffled_idxs[start_idx : start_idx + batch_size]
+            batches.append(Dataset(X=dataset.X[idxs], y=dataset.y[idxs]))
 
-    for i in range(0, len(dataset) - batch_size + 1, batch_size):
-        idxs = shuffled_idxs[i : i + batch_size]
         yield Dataset(X=dataset.X[idxs], y=dataset.y[idxs])
