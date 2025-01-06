@@ -20,6 +20,19 @@ class Dataset:
         return len(self.X)
 
 
+def dataset_flatten(dataset):
+    children = (dataset.X, dataset.y)
+    aux_data = {}
+    return children, aux_data
+
+
+def dataset_unflatten(aux_data, children):
+    return Dataset(*children)
+
+
+jax.tree_util.register_pytree_node(Dataset, dataset_flatten, dataset_unflatten)
+
+
 @dataclass
 class SplitDataset:
     X_train: jax.Array
@@ -36,10 +49,12 @@ class SplitDataset:
             and len(self.X_valid) == len(self.y_valid)
         )
         is_same_features = (
-            self.X_train.shape[1] == self.X_test.shape[1] == self.X_valid.shape[1]
-            and self.y_train.shape[1] == self.y_test.shape[1] == self.y_valid.shape[1]
+            self.X_train.ndim == self.X_test.ndim == self.X_valid.ndim == 1
+            or self.X_train.shape[1] == self.X_test.shape[1] == self.X_valid.shape[1]
+        ) and (
+            self.y_train.ndim == self.y_test.ndim == self.y_valid.ndim == 1
+            or self.y_train.shape[1] == self.y_test.shape[1] == self.y_valid.shape[1]
         )
-
         if not is_same_length:
             raise ValueError("X and y must have the same length")
 
@@ -69,8 +84,10 @@ def create_regression_dataset(
     """
     key, subkey = jax.random.split(key)
     X = jax.random.normal(subkey, (n_samples,)) * 5
+    X = X[:, None] if X.ndim == 1 else X
     key, subkey = jax.random.split(key)
-    y = jnp.sin(X) + jax.random.normal(subkey, (n_samples,)) * noise
+
+    y = jnp.sin(X) + jax.random.normal(subkey, (n_samples, 1)) * noise
 
     return Dataset(X=X, y=y)
 

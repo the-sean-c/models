@@ -3,10 +3,10 @@ from dataclasses import dataclass
 import jax
 import jax.numpy as jnp
 from jax import random
+from typing import NamedTuple
 
 
-@dataclass
-class LayerParameters:
+class LayerParameters(NamedTuple):
     weights: jax.Array
     biases: jax.Array
 

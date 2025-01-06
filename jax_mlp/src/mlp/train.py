@@ -13,9 +13,11 @@ def MSE_loss(params: list[LayerParameters], dataset: Dataset) -> jax.Array:
     return jnp.mean((forward(params, dataset.X) - dataset.y) ** 2)
 
 
+loss_fn = MSE_loss
+
+
 @jax.jit
 def update(
-    loss_fn: Callable[[list[LayerParameters], Dataset], jax.Array],
     lr: float,
     params: list[LayerParameters],
     dataset: Dataset,
@@ -44,7 +46,7 @@ def train(
     key = jax.random.key(42)
     data_gen_key, key = jax.random.split(key)
 
-    raw_dataset = create_regression_dataset(key=data_gen_key, n_samples=50)
+    raw_dataset = create_regression_dataset(key=data_gen_key, n_samples=10000)
     data_split_key, key = jax.random.split(key)
 
     split_dataset = create_split_dataset(key=data_split_key, raw_dataset=raw_dataset)
@@ -54,13 +56,14 @@ def train(
     params = init_NN_params(key=param_init_key, layer_widths=layer_widths)
 
     for _ in range(n_epochs):
-        params = update(loss_fn=MSE_loss, lr=lr, params=params, dataset=train_dataset)
+        params = update(lr=lr, params=params, dataset=train_dataset)
 
     plt.scatter(train_dataset.X, train_dataset.y)
     plt.scatter(
         train_dataset.X, forward(params, train_dataset.X), label="Model prediction"
     )
     plt.legend()
+    plt.show()
 
 
 if __name__ == "__main__":
