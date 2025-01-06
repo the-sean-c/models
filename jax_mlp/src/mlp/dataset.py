@@ -1,5 +1,3 @@
-import queue
-from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from typing import Generator
 
@@ -77,7 +75,7 @@ def create_regression_dataset(
     return Dataset(X=X, y=y)
 
 
-def split_dataset(
+def create_split_dataset(
     key: jax.Array,
     raw_dataset: Dataset,
     test_portion: float = 0.2,
@@ -103,16 +101,16 @@ def split_dataset(
         raise ValueError("portions must be [0, 0.4]")
 
     n_samples = len(raw_dataset)
-    n_test = n_samples * test_portion // 1
-    n_valid = n_samples * valid_portion // 1
+    n_test = int(n_samples * test_portion)
+    n_valid = int(n_samples * valid_portion)
     n_train = n_samples - n_test - n_valid
 
     key, subkey = jax.random.split(key)
     shuffled_idx = jax.random.permutation(subkey, n_samples)
 
-    train_idx = shuffled_idx[:n_train]
-    test_idx = shuffled_idx[n_train : n_train + n_test]
-    valid_idx = shuffled_idx[n_train + n_test :]
+    train_idx = jnp.array(shuffled_idx[:n_train])
+    test_idx = jnp.array(shuffled_idx[n_train : n_train + n_test])
+    valid_idx = jnp.array(shuffled_idx[n_train + n_test :])
 
     return SplitDataset(
         X_train=raw_dataset.X[train_idx],

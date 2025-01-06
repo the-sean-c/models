@@ -11,12 +11,13 @@ dependencies = [
     "altair[all]>=5.5.0",
     "icecream>=2.1.3",
     "jax-metal>=0.1.1",
+    "matplotlib>=3.10.0",
     "polars>=1.18.0",
     "typer>=0.15.1",
 ]
 
 [project.scripts]
-001-mlp = "001_mlp:main"
+train = "mlp.train:app"
 
 [build-system]
 requires = ["hatchling"]
